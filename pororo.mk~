@@ -1,0 +1,21 @@
+$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
+
+$(call inherit-product-if-exists, vendor/pantech/pororo/pororo-vendor.mk)
+
+DEVICE_PACKAGE_OVERLAYS += device/pantech/pororo/overlay
+
+
+ifeq ($(TARGET_PREBUILT_KERNEL),)
+	LOCAL_KERNEL := device/pantech/pororo/kernel
+else
+	LOCAL_KERNEL := $(TARGET_PREBUILT_KERNEL)
+endif
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_KERNEL):kernel
+
+$(call inherit-product, build/target/product/full.mk)
+
+PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
+PRODUCT_NAME := full_pororo
+PRODUCT_DEVICE := pororo

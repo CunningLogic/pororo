@@ -1,0 +1,9 @@
+
+# Audio
+lib/libaudio.so
+lib/libaudioalsa.so
+lib/libaudiopolicy.so
+
+# Camera
+lib/libcamera.so
+lib/liboemcamera.so

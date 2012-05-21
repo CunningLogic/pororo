@@ -1,0 +1,123 @@
+on early-init
+    start ueventd
+
+on init
+    export PATH /sbin
+    export ANDROID_ROOT /system
+    export ANDROID_DATA /data
+    export EXTERNAL_STORAGE /sdcard
+
+    symlink /system/etc /etc
+
+    mkdir /boot
+    mkdir /sdcard
+    mkdir /sd-ext
+    mkdir /datadata
+    mkdir /emmc
+    mkdir /system
+    mkdir /data
+    mkdir /cache
+    mount /tmp /tmp tmpfs
+
+    chmod 640 /system/bin/usbhub
+    chmod 755 /system/bin/usbhub_init
+
+on emmc-fs
+# mount mmc partitions
+    #20110321 choiseulkee chg for FEATURE_SKY
+    #wait /dev/block/mmcblk0p12
+    #mount ext3 /dev/block/mmcblk0p12 /system ro barrier=1
+    #wait /dev/block/mmcblk0p13
+    #exec /system/bin/e2fsck -p /dev/block/mmcblk0p13
+    #mount ext3 /dev/block/mmcblk0p13 /data nosuid nodev barrier=1 noauto_da_alloc
+    #mount ext3 /dev/block/mmcblk0p14 /persist nosuid nodev barrier=1
+    #mount ext3 /dev/block/mmcblk0p15 /cache nosuid nodev barrier=1
+    #20110321 choiseulkee else
+    wait /dev/block/mmcblk0p13
+    mount ext3 /dev/block/mmcblk0p13 /system ro barrier=1
+    wait /dev/block/mmcblk0p14
+    exec /system/bin/mmcblk_utils ext3 /dev/block/mmcblk0p14
+    exec /system/bin/e2fsck -p /dev/block/mmcblk0p14
+    mount ext3 /dev/block/mmcblk0p14 /data nosuid nodev noatime barrier=1
+    mount ext3 /dev/block/mmcblk0p14 /data nosuid nodev noatime remount noauto_da_alloc
+    mount ext3 /dev/block/mmcblk0p14 /data nosuid nodev noatime remount discard
+    wait /dev/block/mmcblk0p15
+    exec /system/bin/mmcblk_utils ext3 /dev/block/mmcblk0p15
+    exec /system/bin/e2fsck -p /dev/block/mmcblk0p15  
+    mount ext3 /dev/block/mmcblk0p15 /persist nosuid nodev noatime barrier=1
+    wait /dev/block/mmcblk0p16
+    exec /system/bin/mmcblk_utils ext3 /dev/block/mmcblk0p16
+    exec /system/bin/e2fsck -p /dev/block/mmcblk0p16  
+    mount ext3 /dev/block/mmcblk0p16 /cache nosuid nodev noatime barrier=1
+    wait /dev/block/mmcblk0p25
+    exec /system/bin/mmcblk_utils fat16 /dev/block/mmcblk0p25
+    wait /dev/block/mmcblk0p27
+    exec /system/bin/mmcblk_utils fat /dev/block/mmcblk0p27
+    #20110321 choiseulkee chg_end
+    # p14774 : remove : permission of mmcblk0p17 : For CTS
+    #Setting permissons for misc partition
+    #chmod 0666 /dev/block/mmcblk0p17
+
+
+on boot
+
+    ifup lo
+    hostname localhost
+    domainname localdomain
+
+    class_start default
+
+service ueventd /sbin/ueventd
+    critical
+
+service recovery /sbin/recovery
+
+
+# Export GPIO56 for fusion targets to enable/disable hub
+service usbhub_init /sbin/usbhub_init
+   user root
+   enabled
+   oneshot
+
+service time_daemon /system/bin/time_daemon
+    user root
+    group root
+    oneshot
+    disabled
+
+on property:persist.timed.enable=true
+    mkdir /data/time/ 0700
+    start time_daemon
+ 
+on property:ro.product.device=pororo
+    start usbhub_init
+
+    insmod /system/lib/modules/qt602240.ko
+    insmod /system/lib/modules/tki_melfas.ko
+
+#service adbd /sbin/adbd recovery
+service recovery /sbin/recovery
+
+service adbd /sbin/adbd recovery
+    enabled
+
+
+on property:persist.service.adb.enable=1
+    start adbd
+
+on property:persist.service.adb.enable=0
+    stop adbd
+
+service qcom-sh /system/bin/sh /init.qcom.sh
+    user root
+    oneshot
+
+service qcom-post-boot /system/bin/sh /system/etc/init.qcom.post_boot.sh
+    user root
+    disabled
+    oneshot
+
+
+
+
+
